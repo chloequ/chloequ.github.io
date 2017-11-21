@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <!-- CSS Imports -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.15/themes/css/cartodb.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.9/leaflet.draw.css" />
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <!-- fullScreenModal -->
+    <div id="modal" class="map">
+      <div id="intro">
+        <p>Indego Bikeshare Stats Visualization</p>
+        <p>This webpage visualizes the statistics of
+          Indego bikeshare stations and trips in 2016. The source
+          data are Indego Trip Data recording information about all
+          bikeshare trips taken during each quarter in 2016. This
+          application is built based on the combined Indego trip data on 650,239 rides for
+          the whole 2016, providing multiple interactive
+          visualizations in the formats of map and stats dashboard.</p>
+      </div>
+      <button id="startMap">Start</button>
+      <div id="source">
+        <p>Bikeshare data source:<a href="https://www.rideindego.com/about/data/" class="sourceA"> Indego</a> / Basemap data:
+          <a href="http://www.openstreetmap.org" class="sourceA"> OpenStreetMap</a> /
+          Routes Calculation & Location Search: <a href="https://mapzen.com/" class="sourceA"> Mapzen</a>
+          / Data hosting: <a href="https://carto.com/" class="sourceA"> Carto</a> /
+          Other contributing libraries: <a href="http://leafletjs.com/" class="sourceA"> Leaflet.js</a>,
+          <a href="http://getbootstrap.com" class="sourceA"> Bootstrap</a>,
+          <a href="https://gka.github.io/chroma.js/" class="sourceA"> Chroma.js</a>,
+          <a href="http://underscorejs.org/" class="sourceA"> Underscore.js</a>,
+          <a href="https://jquery.com/" class="sourceA"> jQuery.js</a></p>
+      </div>
+    </div>
+    <!-- topbar -->
+    <div id="thintop" hidden="hidden">
+      <span class="glyphicon glyphicon-chevron-down" aria-hidden="true" style="font-size:20px" id="menuDown"></span>
+    </div>
+    <div class="topbar" id="top" style="vertical-align:middle">
+      <ul class="nav nav-pills">
+        <li role="presentation" id="menuUp"><a href="#">
+          <span class="glyphicon glyphicon-chevron-up" aria-hidden="true" style="font-size:20px"></span>
+          </a></li>
+        <li role="presentation" id="mapping" style="margin-left:3px"><a href="#">
+          <span class="glyphicon glyphicon-globe" aria-hidden="true" style="font-size:20px"></span>
+        </a></li>
+        <li role="presentation" id="firstButton" style="margin-left:3px"><a href="#">
+          <span class="glyphicon glyphicon-stats" aria-hidden="true" style="font-size:20px"></span>
+        </a></li>
+        <li role="presentation"><a href="#" id="secondButton" style="margin-left:1px">
+          <span class="glyphicon glyphicon-info-sign" aria-hidden="true" style="font-size:20px"></span>
+        </a></li>
+        <li role="presentation"><a href="#" id="thirdButton" style="margin-left:2px">
+          <span class="glyphicon glyphicon-filter" aria-hidden="true" style="font-size:20px"></span>
+        </a></li>
+        <li role="presentation"><a href="#" id="fourthButton" style="margin-left:2px">
+          <span class="glyphicon glyphicon-search" aria-hidden="true" style="font-size:20px"></span>
+        </a></li>
+        <li role="presentation">
+          <div class="form-group">
+           <input type="text" class="form-control" placeholder="Explore your location" id="destination" hidden="hidden">
+         </div>
+       </li>
+       <li role="presentation">
+         <button type="submit" class="btn btn-default" id="explore" hidden="hidden">Search</button>
+       </li>
+       <li role="presentation">
+         <button type="submit" class="btn btn-default" id="clear" hidden="hidden">Clear</button>
+       </li>
+       </div>
+      </ul>
+
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="leftbar" hidden="hidden">
+      <div class="subdiv" id="maps" hidden="hidden">
+        <div class="barTitle" style="margin-left:7px">
+          <span class="glyphicon glyphicon-globe" aria-hidden="true" style="color:antiquewhite; font-size:25px"></span>
+          <h3 style="color:antiquewhite; vertical-align:middle">Maps</h3>
+          <span class="glyphicon glyphicon-remove-circle" aria-hidden="true" id="hideIt0" style="font-size:25px; color:rgba(250, 235, 215,0.5); float:right"></span>
+        </div>
+          <ul class="nav nav-pills nav-stacked" id="mapsChoice" hidden="hidden">
+            <li role="presentation" id="mapsChoice1" style="margin-bottom:5px; margin-left:20px; margin-right:20px"><a href="#">Departures/Arrivals</a></li>
+            <div class="discription" id="discription1" hidden="hidden">
+              	The ratio of rides starting from each station (departures) to rides
+                ending at the same station (arrivals) shows the ride flow pattern of this station.
+                The map shows that people usually departure at stations around West Philadelphia
+                and ride to the stations around Center City.
+            </div>
+            <li role="presentation" id="mapsChoice2" style="margin-bottom:5px; margin-left:20px; margin-right:20px"><a href="#">Round Trips Share</a></li>
+            <div class="discription" id="discription2" hidden="hidden">
+              The round trips share in total number of rides over a station shows the usage pattern
+               of this station. The map shows that people tend to use stations around major parks
+               and along rivers for  leisure bike trips rather than daily transportation.
+            </div>
+            <div id="mapsIntro">
+              <span class="glyphicon glyphicon-triangle-top" aria-hidden="true" style="font-size:30px"></span>
+              <p>Choose a critical parameter above for visualization!</p>
+            <div>
+          </ul>
+      </div>
+      <div class="subdiv" id="macroStats" hidden="hidden">
+        <div class="barTitle" style="margin-left:7px">
+          <span class="glyphicon glyphicon-stats icon" aria-hidden="true" style="color:antiquewhite; font-size:25px"></span>
+          <h3 style="color:antiquewhite; vertical-align:middle">Macro Stats</h3>
+          <span class="glyphicon glyphicon-remove-circle" aria-hidden="true" id="hideIt1" style="font-size:25px; color:rgba(250, 235, 215,0.5); float:right"></span>
+        </div>
+        <div class="subBar">
+          <div class="input-group" style="height:520px">
+            <input id="stationTotal" type="text"
+                   class="form-control"
+                   placeholder="Number of Indego Stations"
+                   style="margin-top:5px"
+                   disabled>
+           <input id="stationTotal1" type="text"
+                  class="form-control number"
+                  placeholder="Number of Indego Stations"
+                  disabled>
+           <input id="bikeTotal" type="text"
+                  class="form-control"
+                  placeholder="Number of Indego Bikes"
+                  style="margin-top:5px"
+                  disabled>
+            <input id="bikeTotal1" type="text"
+                   class="form-control number"
+                   placeholder="Number of Indego Bikes"
+                   disabled>
+            <input id="total" type="text"
+                   class="form-control"
+                   placeholder="Total Number of Indego Rides in 2016"
+                   style="margin-top:5px"
+                   disabled>
+           <input id="total1" type="text"
+                  class="form-control number"
+                  placeholder="Total Number of Indego Rides in 2016"
+                  disabled>
+            <input id="roundPer" type="text"
+                   class="form-control"
+                   placeholder="Overall Round Trips Share"
+                   style="margin-top:5px"
+                   disabled>
+             <input id="roundPer1" type="text"
+                    class="form-control number"
+                    placeholder="Round Trips Share"
+                    disabled>
+            <input id="mean" type="text"
+                  class="form-control"
+                  placeholder="Average Annual Rides Per Station"
+                  style="margin-top:5px"
+                  disabled>
+            <input id="mean1" type="text"
+                   class="form-control number"
+                   placeholder="Average Annual Rides Per Station"
+                   disabled>
+            <button class="minmax" id="min">MIN</button>
+            <button class="minmax" id="max">MAX</button>
+            <div id="statsIntro">
+              <span class="glyphicon glyphicon-triangle-top" aria-hidden="true" style="font-size:30px"></span>
+              Click me!
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="subdiv" id="stationInfo" hidden="hidden">
+        <div class="barTitle" style="margin-left:7px">
+          <span class="glyphicon glyphicon-info-sign" aria-hidden="true" style="color:antiquewhite; font-size:25px"></span>
+          <h3 style="color:antiquewhite; vertical-align:middle">Individual Stats</h3>
+          <span class="glyphicon glyphicon-remove-circle" aria-hidden="true" id="hideIt2" style="font-size:25px; color:rgba(250, 235, 215,0.5)"></span>
+        </div>
+        <div class="subBar">
+          <div clas="subdiv" id="basicInfo" style="margin-bottom:15px">
+            <h5>Station Info</h5>
+            <div class="input-group">
+              <input id="station_id" type="text"
+                     class="form-control"
+                     placeholder="Station ID"
+                     disabled>
+              <input id="address" type="text"
+                    class="form-control"
+                    placeholder="Address"
+                    disabled>
+              <input id="zipcode" type="text"
+                   class="form-control"
+                   placeholder="Zipcode"
+                   disabled>
+              <input id="dockNumber" type="text"
+                    class="form-control"
+                    placeholder="Docking Capacity"
+                    disabled>
+            </div>
+          </div>
+          <div class="subdiv" id="indivStats">
+            <div class="titleSelection" id="rideStats"><h5>Indego rides through this station</h4></div>
+            <div class="input-group" id="info1" hidden="hidden">
+               <input id="total_num_rides" type="text"
+                      class="form-control"
+                      placeholder="Total Number of Rides"
+                      disabled>
+                <input id="tll_per" type="text"
+                       class="form-control"
+                       placeholder="Share of All Indego Rides"
+                       disabled>
+                <input id="arrival" type="text"
+                       class="form-control"
+                       placeholder="Arrival"
+                       disabled>
+                 <input id="departure" type="text"
+                        class="form-control"
+                        placeholder="Departure"
+                        disabled>
+                <input id="round_trip" type="text"
+                       class="form-control"
+                       placeholder="Round Trip Share"
+                       disabled>
+               <input id="daratio_value" type="text"
+                      class="form-control"
+                      placeholder="Departures/Arrivals"
+                      disabled>
+            </div>
+          </div>
+          <div class="subdiv" id="popularOD">
+            <div class="titleSelection" id="od"><h5>Most popular origin and destination</h4></div>
+            <div class="input-group" id="info2" hidden="hidden">
+              <input id="origin_id" type="text"
+                     class="form-control"
+                     placeholder="Hottest Origin"
+                     disabled>
+              <input id="destination_id" type="text"
+                    class="form-control"
+                    placeholder="Hottest Destination"
+                    disabled>
+            </div>
+          </div>
+          <div id="indivIntro">
+            <span class="glyphicon glyphicon-triangle-right" aria-hidden="true" style="font-size:30px"></span>
+            <p>Click a station on the map to get stats!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar" id="rightbar" hidden="hidden">
+          <div class="barTitle">
+            <span class="glyphicon glyphicon-filter icon" aria-hidden="true" style="color:antiquewhite; font-size:25px"></span>
+            <h3 style="color:antiquewhite; vertical-align:middle">Filter by...</h3>
+            <span class="glyphicon glyphicon-remove-circle" aria-hidden="true" id="hideIt3" style="font-size:25px; color:rgba(250, 235, 215,0.5)"></span>
+          </div>
+          <div class="filterSelection" id="filterSelection1" style="color:antiquewhite">
+            <span class="glyphicon glyphicon-road" aria-hidden="true" style="font-size:50px"></span>
+            Number of <strong>Rides</strong>
+          </div>
+          <div class="filterSelection" id="filterSelection2" style="color:antiquewhite">
+            <span class="glyphicon glyphicon-repeat" aria-hidden="true" style="font-size:50px"></span>
+            Percent of <strong>Round Trips</strong>
+          </div>
+          <div id="filterSelection11" hidden="hidden">
+            <ul class="nav nav-pills nav-stacked" id="numberFilter" hidden="hidden">
+              <li role="presentation" id="rough" style="margin-bottom:5px"><a href="#">Average Cut</a></li>
+              <li role="presentation" id="select" style="margin-bottom:5px"><a href="#">Select Range</a></li>
+              <li role="presentation" id="input" style="margin-bottom:5px"><a href="#">Customize Range</a></li>
+            </ul>
+            <div id="customize" hidden="hidden" style="color:antiquewhite; margin-left:15px">
+              <h5>Input your filter range</h5>
+               <input class="num_rides" id="low_num_rides" type="number"
+                      class="form-control"
+                      placeholder="Min" style="color:black">
+              To
+              <input class="num_rides" id="high_num_rides" type="number"
+                     class="form-control"
+                     placeholder="Max" style="color:black">
+            </div>
+            <div class="dropdown" id="range" hidden="hidden">
+                <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                  Select your filter range
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+                  <li><a href="#" id="option0">Deselect</a></li>
+                  <li role="separator" class="divider"></li>
+                  <li><a href="#" id="option1">Below 5000</a></li>
+                  <li><a href="#" id="option2">5001 to 10000</a></li>
+                  <li><a href="#" id="option3">10001 to 15000</a></li>
+                  <li><a href="#" id="option4">15001 to 20000</a></li>
+                  <li><a href="#" id="option5">20001 to 25000</a></li>
+                  <li><a href="#" id="option6">25001 to 30000</a></li>
+                  <li><a href="#" id="option7">Above 30000</a></li>
+                </ul>
+            </div>
+            <div class="btn-group" role="group" aria-label="..." id="avgRange" hidden="hidden">
+              <button type="button" class="btn btn-default" id="below">Below Average</button>
+              <button type="button" class="btn btn-default" id="above">Above Average</button>
+            </div>
+          </div>
+          <div id="filterSelection22" hidden="hidden">
+            <ul class="nav nav-pills nav-stacked" id="roundFilter" hidden="hidden">
+              <li role="presentation" id="rough2" style="margin-bottom:5px"><a href="#">Average Cut</a></li>
+              <li role="presentation" id="select2" style="margin-bottom:5px"><a href="#">Select Range</a></li>
+            </ul>
+            <div class="btn-group" role="group" aria-label="..." id="avgRound" hidden="hidden">
+              <button type="button" class="btn btn-default" id="below2">Below Average</button>
+              <button type="button" class="btn btn-default" id="above2">Above Average</button>
+            </div>
+            <div class="dropdown" id="rangeRound" hidden="hidden">
+               <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                 Select your filter range
+                 <span class="caret"></span>
+               </button>
+               <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu2">
+                 <li><a href="#" id="option00">Deselect</a></li>
+                 <li role="separator" class="divider"></li>
+                 <li><a href="#" id="option8">Below 5%</a></li>
+                 <li><a href="#" id="option9">5% to 15%</a></li>
+                 <li><a href="#" id="option10">15% to 25%</a></li>
+               </ul>
+            </div>
+          </div>
+          <div id="filterIntro">
+            <span class="glyphicon glyphicon-triangle-top" aria-hidden="true" style="font-size:30px"></span>
+            <p>Choose a filter type!</p>
+          </div>
+          <div id="executionButton">
+            <button class="button" id="filter">Filter</button>
+            <button class="button" id="reset">Reset</button>
+          </div>
+    </div>
+
+    <!-- default Bar -->
+    <div class="originalBar">
+      <p>Number of rides(trips) on each station</p>
+      <p>This map displays the location of all 105 Indego bikeshare stations in
+        Philadelphia. The sizes of the station dots are coded based on the total number
+        of rides(trips) happened in 2016 on the stations represented. </p>
+      <p>There is a concentration of Indego bikeshare trips around
+        the part of Schuylkill River which conjuncts Center City and University City. </p>
+      <div>
+        <span class="glyphicon glyphicon-triangle-top" aria-hidden="true" style="font-size:30px"></span>
+        <p>Now click on the <strong>buttons at the top</strong> or click on the <strong>station dots in the map</strong> to
+        explore more about Indego bikeshare in 2016!
+        <span class="glyphicon glyphicon-triangle-right" aria-hidden="true" style="font-size:30px"></span>
+        </p>
+      </div>
+    </div>
+
+    <!-- bottomBar -->
+    <div class="bottomBar" hidden="hidden">
+      <div id="hotself"></div>Clicked Station
+      <div id="hotStart"></div>Hottest Origin
+      <div id="hotend"></div>Hottest Destination
+      <span class="glyphicon glyphicon-remove-circle" aria-hidden="true" id="hideIt4" style="font-size:25px; color:rgba(0, 0, 0,0.2); float:right"></span>
+      <p>The lines are optimized bike routes between the clicked station and its hottest destination/origin.</p>
+      <p>If a station has no routes mapped out, that means it is a hottie for roundtrip!</p>
+      <p>If a station has no hottest destination or origin mapped out, that means the hottest destination or origin for it is itself.</p>
+    </div>
+    <!-- Map -->
+    <div id="map" class="map">
+      <button id="refresh">
+        <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+      </button>
+      <div class="legend">
+        <div id="gradient1" hidden="hidden"></div>
+        <div id="gradient2" hidden="hidden"></div>
+        <div id="sizing">
+          <div class="circle" style="height:6px;width:6px"></div>
+          <div class="circle" style="height:10px;width:10px"></div>
+          <div class="circle" style="height:14px;width:14px"></div>
+          <div class="circle" style="height:18px;width:18px"></div>
+          <div class="circle" style="height:22px;width:22px"></div>
+          <div class="circle" style="height:26px;width:26px"></div>
+          <div class="circle" style="height:32px;width:32px"></div>
+        </div>
+        <div id="textBox">
+          <input class="legendText" type="text" id="minText" disabled>
+          <input class="legendText" type="text" id="maxText" disabled>
+        </div>
+      </div>
+    </div>
+
+    <!-- Javascript Imports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="import/chroma.js"></script>
+    <script src="import/underscore.js"></script>
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="http://libs.cartocdn.com/cartodb.js/v3/3.15/cartodb.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.4.9/leaflet.draw.js"></script>
+    <script src="import/decode.js"></script>
+    <script src="js/navigationFinal.js"></script>
+    <script src="js/markerStyleFinal.js"></script>
+    <script src="js/application.js"></script>
+  </body>
+</html>
